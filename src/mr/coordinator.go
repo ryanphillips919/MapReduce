@@ -31,32 +31,32 @@ type Coordinator struct {
 // an example RPC handler.
 //
 // the RPC argument and reply types are defined in rpc.go.
-func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
+func (coordinator *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
 	reply.Y = args.X + 1
 	return nil
 }
 
 // RequestTask handles a worker's request for its next unit of work.
-func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply) error {
+func (coordinator *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply) error {
 	reply.TaskType = WaitTask
 	return nil
 }
 
 // start a thread that listens for RPCs from worker.go
-func (c *Coordinator) server(sockname string) {
-	rpc.Register(c)
+func (coordinator *Coordinator) server(sockname string) {
+	rpc.Register(coordinator)
 	rpc.HandleHTTP()
 	os.Remove(sockname)
-	l, e := net.Listen("unix", sockname)
-	if e != nil {
-		log.Fatalf("listen error %s: %v", sockname, e)
+	listener, err := net.Listen("unix", sockname)
+	if err != nil {
+		log.Fatalf("listen error %s: %v", sockname, err)
 	}
-	go http.Serve(l, nil)
+	go http.Serve(listener, nil)
 }
 
 // main/mrcoordinator.go calls Done() periodically to find out
 // if the entire job has finished.
-func (c *Coordinator) Done() bool {
+func (coordinator *Coordinator) Done() bool {
 	ret := false
 
 	// Your code here.
@@ -69,7 +69,7 @@ func (c *Coordinator) Done() bool {
 // main/mrcoordinator.go calls this function.
 // nReduce is the number of reduce tasks to use.
 func MakeCoordinator(sockname string, files []string, nReduce int) *Coordinator {
-	c := Coordinator{
+	coordinator := Coordinator{
 		nReduce: nReduce,
 	}
 
@@ -79,9 +79,9 @@ func MakeCoordinator(sockname string, files []string, nReduce int) *Coordinator 
 			Filename: filename,
 		}
 
-		c.mapTasks = append(c.mapTasks, task)
+		coordinator.mapTasks = append(coordinator.mapTasks, task)
 	}
 
-	c.server()
-	return &c
+	coordinator.server(sockname)
+	return &coordinator
 }
