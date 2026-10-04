@@ -8,10 +8,22 @@ import (
 	"os"
 )
 
+type TaskStatus string
+
+const (
+	NotStarted TaskStatus = "not_started"
+	InProgress TaskStatus = "in_progress"
+	Done       TaskStatus = "done"
+)
+
+type Task struct {
+	Status   TaskStatus
+	Filename string
+}
 
 type Coordinator struct {
-	// Your definitions here.
-
+	mapTasks []Task
+	nReduce  int
 }
 
 // Your code here -- RPC handlers for the worker to call.
