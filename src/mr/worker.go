@@ -1,11 +1,12 @@
 package mr
 
-import "fmt"
-import "log"
-import "net/rpc"
-import "hash/fnv"
-import "os"
-
+import (
+	"fmt"
+	"hash/fnv"
+	"log"
+	"net/rpc"
+	"os"
+)
 
 // Map functions return a slice of KeyValue.
 type KeyValue struct {
@@ -30,11 +31,23 @@ func Worker(sockname string, mapf func(string, string) []KeyValue,
 
 	coordSockName = sockname
 
-	// Your worker implementation here.
+	reply, ok := requestTask()
+	if !ok {
+		return
+	}
 
-	// uncomment to send the Example RPC to the coordinator.
-	// CallExample()
+	fmt.Printf("received task: %s\n", reply.TaskType)
 
+}
+
+// requestTask asks the coordinator for the worker's next task.
+func requestTask() (RequestTaskReply, bool) {
+	args := RequestTaskArgs{}
+	reply := RequestTaskReply{}
+
+	ok := call("Coordinator.RequestTask", &args, &reply)
+
+	return reply, ok
 }
 
 // example function to show how to make an RPC call to the coordinator.
