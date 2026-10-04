@@ -3,7 +3,10 @@ package mr
 //
 // RPC definitions.
 //
-// remember to capitalize all names.
+// RPC definitions used for communication between workers and the coordinator.
+// Workers request tasks from the coordinator and receive task assignments in response.
+// These types define the shared request/response contract for MapReduce coordination.
+// Additional RPC messages can be added here as the worker-coordinator protocol grows.
 //
 
 type TaskType string

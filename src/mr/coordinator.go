@@ -1,10 +1,12 @@
 package mr
 
-import "log"
-import "net"
-import "os"
-import "net/rpc"
-import "net/http"
+import (
+	"log"
+	"net"
+	"net/http"
+	"net/rpc"
+	"os"
+)
 
 
 type Coordinator struct {
@@ -22,6 +24,11 @@ func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
 	return nil
 }
 
+// RequestTask handles a worker's request for its next unit of work.
+func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply) error {
+	reply.TaskType = WaitTask
+	return nil
+}
 
 // start a thread that listens for RPCs from worker.go
 func (c *Coordinator) server(sockname string) {
