@@ -40,3 +40,49 @@ func TestRequestTaskReturnsWait(t *testing.T) {
 		t.Errorf("TaskType = %q, want %q", reply.TaskType, WaitTask)
 	}
 }
+
+func TestRequestTaskAssignments(t *testing.T) {
+    c := Coordinator{
+        mapTasks: []Task{
+            {Status: NotStarted, Filename: "file1.txt"},
+            {Status: NotStarted, Filename: "file2.txt"},
+            {Status: NotStarted, Filename: "file3.txt"},
+        },
+        nReduce: 3,
+    }
+
+    args := RequestTaskArgs{}
+
+    for i := range 4 {
+        reply := RequestTaskReply{}
+
+        err := c.RequestTask(&args, &reply)
+        if err != nil {
+            t.Fatalf("RequestTask returned error: %v", err)
+        }
+
+        if i == 3 {
+            // All three tasks have been assigned.
+            if reply.TaskType != WaitTask {
+                t.Errorf("Request %d: got %q, want %q",
+                    i, reply.TaskType, WaitTask)
+            }
+            continue
+        }
+
+        if reply.TaskType != MapTask {
+            t.Errorf("Request %d: got %q, want %q",
+                i, reply.TaskType, MapTask)
+        }
+
+        if reply.TaskID != i {
+            t.Errorf("Request %d: got task ID %d, want %d",
+                i, reply.TaskID, i)
+        }
+
+        if c.mapTasks[i].Status != InProgress {
+            t.Errorf("Task %d: status is %q, want %q",
+                i, c.mapTasks[i].Status, InProgress)
+        }
+    }
+}

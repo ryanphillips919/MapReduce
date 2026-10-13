@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
+	"sync"
 )
 
 type TaskStatus string
@@ -24,6 +25,7 @@ type Task struct {
 type Coordinator struct {
 	mapTasks []Task
 	nReduce  int
+	mutex    sync.Mutex
 }
 
 // Your code here -- RPC handlers for the worker to call.
@@ -38,24 +40,29 @@ func (coordinator *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) 
 
 // RequestTask handles a worker's request for its next unit of work.
 func (coordinator *Coordinator) RequestTask(
-    args *RequestTaskArgs,
-    reply *RequestTaskReply,
-	) error {
+	args *RequestTaskArgs,
+	reply *RequestTaskReply,
+) error {
+	coordinator.mutex.Lock()
+	defer coordinator.mutex.Unlock()
 
-    for i := range coordinator.mapTasks {
-        task := &coordinator.mapTasks[i]
+	for i := range coordinator.mapTasks {
+		task := &coordinator.mapTasks[i]
 
-        if task.Status == NotStarted {
-            task.Status = InProgress
+		if task.Status == NotStarted {
+			task.Status = InProgress
 
-            reply.TaskType = MapTask
-            reply.TaskID = i
-            reply.Filename = task.Filename
-            reply.NReduce = coordinator.nReduce
+			reply.TaskType = MapTask
+			reply.TaskID = i
+			reply.Filename = task.Filename
+			reply.NReduce = coordinator.nReduce
 
-            return nil
-        }
-    }
+			return nil
+		}
+	}
+
+	reply.TaskType = WaitTask
+	return nil
 }
 
 // start a thread that listens for RPCs from worker.go
@@ -76,7 +83,6 @@ func (coordinator *Coordinator) Done() bool {
 	ret := false
 
 	// Your code here.
-
 
 	return ret
 }

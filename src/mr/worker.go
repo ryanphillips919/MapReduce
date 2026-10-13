@@ -36,7 +36,8 @@ func Worker(sockname string, mapf func(string, string) []KeyValue,
 		return
 	}
 
-	fmt.Printf("received task: %s\n", reply.TaskType)
+	fmt.Printf("received task: %s, ID: %d, file: %s\n",
+    reply.TaskType, reply.TaskID, reply.Filename)
 
 }
 
