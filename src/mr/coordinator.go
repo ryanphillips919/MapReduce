@@ -37,9 +37,25 @@ func (coordinator *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) 
 }
 
 // RequestTask handles a worker's request for its next unit of work.
-func (coordinator *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply) error {
-	reply.TaskType = WaitTask
-	return nil
+func (coordinator *Coordinator) RequestTask(
+    args *RequestTaskArgs,
+    reply *RequestTaskReply,
+	) error {
+
+    for i := range coordinator.mapTasks {
+        task := &coordinator.mapTasks[i]
+
+        if task.Status == NotStarted {
+            task.Status = InProgress
+
+            reply.TaskType = MapTask
+            reply.TaskID = i
+            reply.Filename = task.Filename
+            reply.NReduce = coordinator.nReduce
+
+            return nil
+        }
+    }
 }
 
 // start a thread that listens for RPCs from worker.go
