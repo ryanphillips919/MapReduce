@@ -1,6 +1,9 @@
 package mr
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 // These are small tests for the worker/coordinator RPC contract.
 func TestRequestTaskReply(t *testing.T) {
@@ -84,5 +87,85 @@ func TestRequestTaskAssignments(t *testing.T) {
             t.Errorf("Task %d: status is %q, want %q",
                 i, c.mapTasks[i].Status, InProgress)
         }
+    }
+}
+
+func TestRequestTaskConcurrentAssignments(t *testing.T) {
+    c := Coordinator{
+        mapTasks: []Task{
+            {Status: NotStarted, Filename: "file1.txt"},
+            {Status: NotStarted, Filename: "file2.txt"},
+            {Status: NotStarted, Filename: "file3.txt"},
+        },
+        nReduce: 3,
+    }
+
+    const numWorkers = 4
+
+    var wg sync.WaitGroup
+    start := make(chan struct{})
+
+    replies := make([]RequestTaskReply, numWorkers)
+    errors := make([]error, numWorkers)
+
+    wg.Add(numWorkers)
+
+    for i := 0; i < numWorkers; i++ {
+        go func(i int) {
+            defer wg.Done()
+
+            // Wait until all workers are ready.
+            <-start
+
+            args := RequestTaskArgs{}
+            errors[i] = c.RequestTask(&args, &replies[i])
+        }(i)
+    }
+
+    // Release all workers at once.
+    close(start)
+
+    // Wait for all workers to finish.
+    wg.Wait()
+
+    seen := make(map[int]bool)
+    mapCount := 0
+    waitCount := 0
+
+    for i, reply := range replies {
+        if errors[i] != nil {
+            t.Fatalf("Worker %d: %v", i, errors[i])
+        }
+
+        switch reply.TaskType {
+        case MapTask:
+            mapCount++
+
+            if reply.TaskID < 0 || reply.TaskID >= len(c.mapTasks) {
+                t.Errorf("Worker %d: invalid task ID %d", i, reply.TaskID)
+                continue
+            }
+
+            if seen[reply.TaskID] {
+                t.Errorf("Task %d assigned more than once", reply.TaskID)
+            }
+
+            seen[reply.TaskID] = true
+
+        case WaitTask:
+            waitCount++
+
+        default:
+            t.Errorf("Worker %d: unexpected task type %q",
+                i, reply.TaskType)
+        }
+    }
+
+    if mapCount != 3 {
+        t.Errorf("Got %d map assignments, want 3", mapCount)
+    }
+
+    if waitCount != 1 {
+        t.Errorf("Got %d waiting workers, want 1", waitCount)
     }
 }
