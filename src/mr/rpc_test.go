@@ -168,4 +168,11 @@ func TestRequestTaskConcurrentAssignments(t *testing.T) {
     if waitCount != 1 {
         t.Errorf("Got %d waiting workers, want 1", waitCount)
     }
+
+    for i, task := range c.mapTasks {
+        if task.Status != InProgress {
+            t.Errorf("Task %d: status = %q, want %q",
+                i, task.Status, InProgress)
+        }
+    }
 }
