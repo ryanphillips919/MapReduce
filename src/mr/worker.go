@@ -39,6 +39,18 @@ func Worker(sockname string, mapf func(string, string) []KeyValue,
 	fmt.Printf("received task: %s, ID: %d, file: %s\n",
     reply.TaskType, reply.TaskID, reply.Filename)
 
+    if reply.TaskType == MapTask {
+        contents, err := os.ReadFile(reply.Filename)
+        if err != nil {
+            log.Printf("failed to read %s: %v", reply.Filename, err)
+            return
+        }
+
+        keyValues := mapf(reply.Filename, string(contents))
+
+        fmt.Printf("Map produced %d key-value pairs\n", len(keyValues))
+    }
+
 }
 
 // requestTask asks the coordinator for the worker's next task.
